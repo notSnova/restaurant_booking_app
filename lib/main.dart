@@ -67,7 +67,7 @@ class RestaurantBookingApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const WelcomePage(),
+      home: const WelcomePage(), // navigate to welcome page
     );
   }
 }
