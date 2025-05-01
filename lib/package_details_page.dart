@@ -249,22 +249,6 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                       color: Colors.green[800],
                     ),
                   ),
-                  if (reservation.numberOfGuests > 1)
-                    Text(
-                      '+ RM${getExtraGuestPrice(reservation.numberOfGuests).toStringAsFixed(2)} for ${reservation.numberOfGuests - 1} extra guest(s)',
-                      style: GoogleFonts.roboto(
-                        fontSize: 16,
-                        color: Colors.green[800],
-                      ),
-                    ),
-                  if (_itemQuantities.values.any((qty) => qty > 0))
-                    Text(
-                      '+ RM${getAdditionalItemsPrice().toStringAsFixed(2)} for additional item(s)',
-                      style: GoogleFonts.roboto(
-                        fontSize: 16,
-                        color: Colors.green[800],
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -289,10 +273,28 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                 ),
                 onPressed: () {
                   // handle booking logic
-                  reservation.updateSelectedItems(_itemQuantities);
-                  reservation.updateTotalPrice(
-                    getFinalTotal(reservation.numberOfGuests),
+                  final detailedItems = <String, Map<String, dynamic>>{};
+
+                  // update selected additional items
+                  _itemQuantities.forEach((itemName, quantity) {
+                    if (quantity > 0) {
+                      final unitPrice =
+                          widget.menuPackage.additionalItems[itemName]!;
+                      detailedItems[itemName] = {
+                        'quantity': quantity,
+                        'price': unitPrice,
+                      };
+                    }
+                  });
+
+                  // set selected package
+                  reservation.setSelectedPackage(
+                    name: widget.menuPackage.name,
+                    price: widget.menuPackage.price,
                   );
+
+                  // store additional items selection
+                  reservation.updateSelectedItems(detailedItems);
 
                   // navigate to payment page
                   Navigator.push(
@@ -301,7 +303,7 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                   );
                 },
                 child: Text(
-                  'Pay RM${getFinalTotal(reservation.numberOfGuests).toStringAsFixed(2)}',
+                  'Choose Package',
                   style: GoogleFonts.roboto(fontSize: 18, color: Colors.white),
                 ),
               ),

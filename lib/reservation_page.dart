@@ -13,7 +13,7 @@ class ReservationPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Reservation',
+          'Reservation Details',
           style: GoogleFonts.roboto(color: Colors.white),
         ),
         centerTitle: true,
