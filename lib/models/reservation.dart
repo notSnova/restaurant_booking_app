@@ -11,6 +11,10 @@ class Reservation extends ChangeNotifier {
   String dineDuration = '3 hours';
   List<String> additionalRequests = [];
 
+  // price related data
+  Map<String, int> selectedAdditionalItems = {};
+  double totalPrice = 0.0;
+
   // update reservation with optional parameters, allowing partial updates
   void updateReservation({
     String? name,
@@ -52,5 +56,17 @@ class Reservation extends ChangeNotifier {
     }
 
     notifyListeners(); // notify listeners to update the UI
+  }
+
+  // update selected items
+  void updateSelectedItems(Map<String, int> items) {
+    selectedAdditionalItems = Map.from(items);
+    notifyListeners();
+  }
+
+  // update total price
+  void updateTotalPrice(double price) {
+    totalPrice = price;
+    notifyListeners();
   }
 }

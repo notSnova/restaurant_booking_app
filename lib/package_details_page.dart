@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:restaurant_booking_app/models/menu_package.dart';
 import 'package:provider/provider.dart';
+import 'package:restaurant_booking_app/payment_page.dart';
 import 'models/reservation.dart';
 
 class PackageDetailsPage extends StatefulWidget {
@@ -288,17 +289,16 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                 ),
                 onPressed: () {
                   // handle booking logic
-                  // double totalPrice = getFinalTotal(reservation.numberOfGuests);
+                  reservation.updateSelectedItems(_itemQuantities);
+                  reservation.updateTotalPrice(
+                    getFinalTotal(reservation.numberOfGuests),
+                  );
 
-                  // print(
-                  //   'Booking: ${widget.menuPackage.name} - RM${widget.menuPackage.price.toStringAsFixed(2)}',
-                  // );
-                  // print(
-                  //   'Selected Additional Items: ${_selectedItems.join(', ')}',
-                  // );
-                  // print(
-                  //   'Total Price (for ${reservation.numberOfGuests} guests): RM${totalPrice.toStringAsFixed(2)}',
-                  // );
+                  // navigate to payment page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PaymentPage()),
+                  );
                 },
                 child: Text(
                   'Pay RM${getFinalTotal(reservation.numberOfGuests).toStringAsFixed(2)}',
