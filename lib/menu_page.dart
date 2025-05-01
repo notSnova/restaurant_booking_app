@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:restaurant_booking_app/menu_package.dart';
+import 'package:restaurant_booking_app/models/menu_package.dart';
 import 'package:restaurant_booking_app/package_details_page.dart';
 
 class MenuPage extends StatelessWidget {
@@ -38,6 +38,7 @@ class MenuPage extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16.0,
                 mainAxisSpacing: 16.0,
+                mainAxisExtent: 220, // height of card
               ),
               itemCount: menuPackages.length,
               itemBuilder: (context, index) {
@@ -56,9 +57,11 @@ class MenuPage extends StatelessWidget {
                   },
                   child: Card(
                     color: Colors.white,
-                    elevation: 5,
+                    elevation: 8,
+                    shadowColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade400, width: 1),
                     ),
                     child: Column(
                       children: [
@@ -69,7 +72,7 @@ class MenuPage extends StatelessWidget {
                           ),
                           child: Image.asset(
                             menuPackage.imageUrl,
-                            height: 120,
+                            height: 160,
                             width: double.infinity,
                             fit: BoxFit.cover,
                           ),

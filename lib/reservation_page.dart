@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'menu_page.dart';
+import 'models/reservation.dart';
 
 class ReservationPage extends StatelessWidget {
   const ReservationPage({super.key});
@@ -145,25 +147,29 @@ class _ReservationFormState extends State<ReservationForm> {
           Center(
             child: ElevatedButton(
               onPressed: () {
-                // handle the form submission
-                print('Name: ${_nameController.text}');
-                print('Address: ${_addressController.text}');
-                print('Phone: ${_phoneController.text}');
-                print('Email: ${_emailController.text}');
-                print('Number of Guests: ${_guestController.text}');
-                print(
-                  'Reservation Date: ${_reservationDate != null ? DateFormat('d MMMM yyyy').format(_reservationDate!) : 'Not Selected'}',
+                // get provider instance
+                final reservation = Provider.of<Reservation>(
+                  context,
+                  listen: false,
                 );
-                print(
-                  'Reservation Time: ${_reservationTime != null ? _formatTime(_reservationTime!) : 'Not Selected'}',
+
+                // update the reservation with user inputs
+                reservation.updateReservation(
+                  name: _nameController.text,
+                  address: _addressController.text,
+                  phone: _phoneController.text,
+                  email: _emailController.text,
+                  numberOfGuests: int.parse(_guestController.text),
+                  reservationDate: _reservationDate ?? DateTime.now(),
+                  reservationTime: _reservationTime ?? TimeOfDay.now(),
+                  dineDuration: _dineDuration,
+                  additionalRequests: _additionalRequests,
                 );
-                print('Dine Duration: $_dineDuration');
-                print('Additional Requests: $_additionalRequests');
 
                 // navigate to menu page
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MenuPage()),
+                  MaterialPageRoute(builder: (context) => MenuPage()),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -175,13 +181,10 @@ class _ReservationFormState extends State<ReservationForm> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Text(
-                'Make Reservation',
-                style: GoogleFonts.roboto(fontSize: 16),
-              ),
+              child: Text('Confirm', style: GoogleFonts.roboto(fontSize: 18)),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -222,7 +225,7 @@ class _ReservationFormState extends State<ReservationForm> {
             _reservationDate == null
                 ? 'Select Date'
                 : DateFormat('d MMMM yyyy').format(_reservationDate!),
-            style: GoogleFonts.roboto(color: Colors.black),
+            style: GoogleFonts.roboto(color: Colors.black, fontSize: 16),
           ),
         ),
       ],
@@ -245,7 +248,7 @@ class _ReservationFormState extends State<ReservationForm> {
             _reservationTime == null
                 ? 'Select Time'
                 : _formatTime(_reservationTime!),
-            style: GoogleFonts.roboto(color: Colors.black),
+            style: GoogleFonts.roboto(color: Colors.black, fontSize: 16),
           ),
         ),
       ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'reservation.dart';
+import 'reservation_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
