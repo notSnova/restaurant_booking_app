@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:restaurant_booking_app/review_page.dart';
 import 'models/reservation.dart';
 
 class PaymentPage extends StatefulWidget {
@@ -297,9 +298,17 @@ class _PaymentPageState extends State<PaymentPage> {
                                     ),
                                   ),
                                   onPressed: () {
-                                    Navigator.of(
-                                      context,
-                                    ).popUntil((route) => route.isFirst);
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => ReviewPage(
+                                              packageName:
+                                                  reservation
+                                                      .selectedPackageName,
+                                            ),
+                                      ),
+                                    );
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
