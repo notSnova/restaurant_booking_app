@@ -281,6 +281,14 @@ class _PaymentPageState extends State<PaymentPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
+                                  'You have paid RM${finalPrice.toStringAsFixed(2)}.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.roboto(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Text(
                                   'Thank you for your reservation!',
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.roboto(
