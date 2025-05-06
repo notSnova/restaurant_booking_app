@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:restaurant_booking_app/models/menu_package.dart';
-import 'package:provider/provider.dart';
+import 'package:restaurant_booking_app/services/database_helper.dart';
 import 'package:restaurant_booking_app/payment_page.dart';
-import 'models/reservation.dart';
 
 class PackageDetailsPage extends StatefulWidget {
   final MenuPackage menuPackage;
+  final String sessionId;
 
-  const PackageDetailsPage({super.key, required this.menuPackage});
+  const PackageDetailsPage({
+    super.key,
+    required this.menuPackage,
+    required this.sessionId,
+  });
 
   @override
   State<PackageDetailsPage> createState() => _PackageDetailsPageState();
@@ -42,8 +46,6 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final reservation = Provider.of<Reservation>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -271,8 +273,12 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                onPressed: () {
+                onPressed: () async {
                   // handle booking logic
+                  final selectedPackageName = widget.menuPackage.name;
+                  final selectedPackagePrice = widget.menuPackage.price;
+
+                  // prepare selected additional items (json format)
                   final detailedItems = <String, Map<String, dynamic>>{};
 
                   // update selected additional items
@@ -287,14 +293,31 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                     }
                   });
 
-                  // set selected package
-                  reservation.setSelectedPackage(
-                    name: widget.menuPackage.name,
-                    price: widget.menuPackage.price,
-                  );
+                  // convert detailedItems to a string
+                  String additionalItemsJson =
+                      detailedItems.isNotEmpty ? detailedItems.toString() : '';
 
-                  // store additional items selection
-                  reservation.updateSelectedItems(detailedItems);
+                  // update to database
+                  final update = await DatabaseHelper.instance
+                      .updateReservationPackage(
+                        widget.sessionId,
+                        selectedPackageName,
+                        selectedPackagePrice,
+                        additionalItemsJson,
+                      );
+
+                  if (update) {
+                    print('Package Updated!');
+                  }
+
+                  // set selected package
+                  // reservation.setSelectedPackage(
+                  //   name: widget.menuPackage.name,
+                  //   price: widget.menuPackage.price,
+                  // );
+
+                  // // store additional items selection
+                  // reservation.updateSelectedItems(detailedItems);
 
                   // navigate to payment page
                   Navigator.push(

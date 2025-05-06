@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:restaurant_booking_app/menu_page.dart';
+import 'package:restaurant_booking_app/package_page.dart';
 import 'package:restaurant_booking_app/services/database_helper.dart';
 
 class ReservationDetailsPage extends StatefulWidget {
@@ -169,7 +169,10 @@ class ReservationDetailsPageState extends State<ReservationDetailsPage> {
                   // Navigate to the MenuPage
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MenuPage()),
+                    MaterialPageRoute(
+                      builder:
+                          (context) => PackagePage(sessionId: widget.sessionId),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(

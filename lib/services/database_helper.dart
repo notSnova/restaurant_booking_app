@@ -36,7 +36,10 @@ class DatabaseHelper {
       reservation_date TEXT,
       reservation_time TEXT,
       duration TEXT,
-      additional_requests TEXT
+      additional_requests TEXT,
+      selected_package_name TEXT,
+      selected_package_price REAL,
+      selected_additional_items TEXT
     )
     ''');
   }
@@ -77,6 +80,27 @@ class DatabaseHelper {
     );
 
     return result.isNotEmpty ? result.first : null;
+  }
+
+  // update reservation data with package related things
+  Future<bool> updateReservationPackage(
+    String sessionId,
+    String selectedPackageName,
+    double selectedPackagePrice,
+    String selectedAdditionalItems,
+  ) async {
+    final db = await database;
+    final rowsAffected = await db.update(
+      'reservations',
+      {
+        'selected_package_name': selectedPackageName,
+        'selected_package_price': selectedPackagePrice,
+        'selected_additional_items': selectedAdditionalItems,
+      },
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
+    );
+    return rowsAffected > 0;
   }
 
   // delete database

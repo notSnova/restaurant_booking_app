@@ -3,8 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:restaurant_booking_app/models/menu_package.dart';
 import 'package:restaurant_booking_app/package_details_page.dart';
 
-class MenuPage extends StatelessWidget {
-  const MenuPage({super.key});
+class PackagePage extends StatelessWidget {
+  final String sessionId;
+  const PackagePage({super.key, required this.sessionId});
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +51,10 @@ class MenuPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) =>
-                                PackageDetailsPage(menuPackage: menuPackage),
+                            (context) => PackageDetailsPage(
+                              menuPackage: menuPackage,
+                              sessionId: sessionId,
+                            ),
                       ),
                     );
                   },
