@@ -17,3 +17,6 @@ samples, guidance on mobile development, and a full API reference.
 
 run devmode in bash
 start ms-settings:developers
+
+add sqlite
+flutter pub add sqflite path_provider
