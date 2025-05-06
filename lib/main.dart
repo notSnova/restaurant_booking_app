@@ -1,28 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:restaurant_booking_app/services/session_helper.dart';
 import 'package:restaurant_booking_app/welcome_page.dart';
-import 'package:restaurant_booking_app/services/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await DatabaseHelper.instance.deleteDatabaseFile();
-  await DatabaseHelper.instance.database; // make sure db is initialized
-  final allReservations = await DatabaseHelper.instance.getAllReservations();
 
-  for (var row in allReservations) {
-    print(row);
-  }
-  String sessionId = await SessionManager.getOrCreateSession();
-  print('Session ID: $sessionId');
-
-  runApp(RestaurantBookingApp(sessionId: sessionId));
+  runApp(RestaurantBookingApp());
 }
 
 class RestaurantBookingApp extends StatelessWidget {
-  final String sessionId;
-
-  const RestaurantBookingApp({super.key, required this.sessionId});
+  const RestaurantBookingApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +69,7 @@ class RestaurantBookingApp extends StatelessWidget {
           ),
         ),
       ),
-      home: WelcomePage(sessionId: sessionId), // navigate to welcome page
+      home: WelcomePage(), // navigate to welcome page
     );
   }
 }

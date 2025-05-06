@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:provider/provider.dart';
-import 'models/reservation.dart';
+import 'package:restaurant_booking_app/services/database_helper.dart';
+import 'package:restaurant_booking_app/services/session_helper.dart';
+import 'welcome_page.dart';
 
 class ReviewPage extends StatefulWidget {
   final String packageName;
+  final String customerName;
+  final String sessionId;
 
-  const ReviewPage({super.key, required this.packageName});
+  const ReviewPage({
+    super.key,
+    required this.packageName,
+    required this.customerName,
+    required this.sessionId,
+  });
 
   @override
   State<ReviewPage> createState() => _ReviewPageState();
@@ -18,46 +26,116 @@ class _ReviewPageState extends State<ReviewPage> {
   final TextEditingController _reviewController = TextEditingController();
 
   // list to store submitted reviews locally
-  final List<Map<String, dynamic>> _reviews = [];
+  List<Map<String, dynamic>> _reviews = [];
 
-  void _submitReview() {
-    final reservation = Provider.of<Reservation>(context, listen: false);
-    final customerName = reservation.name;
+  @override
+  void initState() {
+    super.initState();
+    _fetchReviews();
+  }
 
+  // fetch review from database
+  void _fetchReviews() async {
+    final reviews = await DatabaseHelper.instance.fetchReviews(
+      widget.packageName,
+    );
+    setState(() {
+      _reviews = reviews;
+    });
+  }
+
+  // submit review to database
+  void _submitReview() async {
     if (_currentRating > 0 && _reviewController.text.isNotEmpty) {
+      final newReview = {
+        'customer_name': widget.customerName, // customer name from parameter
+        'package_name': widget.packageName,
+        'rating': _currentRating,
+        'review': _reviewController.text.trim(),
+      };
+
+      // insert review into database
+      await DatabaseHelper.instance.insertReview(newReview);
+
+      // refresh reviews list
+      _fetchReviews();
+
+      // clear input fields
       setState(() {
-        _reviews.add({
-          'name': customerName, // customer name from provider
-          'rating': _currentRating,
-          'review': _reviewController.text.trim(),
-        });
         _currentRating = 0.0;
         _reviewController.clear();
       });
 
-      // snackbar to show message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.white,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_outline, color: Colors.black),
-              const SizedBox(width: 12),
-              Text(
-                'Review submitted!',
-                style: GoogleFonts.roboto(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
+      // show thankyou message
+      showDialog(
+        context: context,
+        builder:
+            (_) => Center(
+              child: AlertDialog(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                title: Center(
+                  child: Text(
+                    'Thank You!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.roboto(
+                      fontSize: 18,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Your review has been submitted successfully.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.roboto(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.grey[350],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        await SessionManager.resetSession();
+                        Navigator.of(context).pop(); // close dialog
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => const WelcomePage(),
+                          ),
+                        ); // back to WelcomePage
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: Text(
+                          'OK',
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
               ),
-            ],
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+            ),
       );
     }
   }
@@ -181,7 +259,7 @@ class _ReviewPageState extends State<ReviewPage> {
                     child: ListTile(
                       leading: const Icon(Icons.star, color: Colors.amber),
                       title: Text(
-                        '${review['name']} - ${review['rating']} ⭐',
+                        '${review['customer_name']} - ${review['rating']} ⭐',
                         style: GoogleFonts.roboto(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(

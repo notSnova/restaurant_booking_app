@@ -1,32 +1,68 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:restaurant_booking_app/review_page.dart';
-import 'models/reservation.dart';
+import 'package:restaurant_booking_app/services/database_helper.dart';
 
 class PaymentPage extends StatefulWidget {
-  const PaymentPage({super.key});
+  final String sessionId;
+  const PaymentPage({super.key, required this.sessionId});
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
 }
 
 class _PaymentPageState extends State<PaymentPage> {
+  Map<String, dynamic>? reservationData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReservationData();
+  }
+
+  Future<void> _loadReservationData() async {
+    final data = await DatabaseHelper.instance.fetchReservation(
+      widget.sessionId,
+    );
+    setState(() {
+      reservationData = data;
+    });
+  }
+
   final TextEditingController _discountCodeController = TextEditingController();
   bool _isValidDiscountCode = false;
   double finalPrice = 0.0;
 
   @override
   Widget build(BuildContext context) {
-    final reservation = Provider.of<Reservation>(context);
+    if (reservationData == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final data = reservationData!;
+
+    // extract data from reservationData
+    final String packageName =
+        data['selected_package_name'] ?? 'Unknown Package';
+    final double packagePrice = data['selected_package_price'];
+    final int numberOfGuests = data['guests'];
+    final String customerName = data['name'];
+
+    // extract additional items data (decode to json)
+    final String? additionalItemsJson = data['selected_additional_items'];
+    final Map<String, dynamic> additionalItems =
+        additionalItemsJson != null && additionalItemsJson.trim().isNotEmpty
+            ? Map<String, dynamic>.from(jsonDecode(additionalItemsJson))
+            : {};
 
     // calculate total of selected package
-    double packageTotal =
-        reservation.selectedPackagePrice * reservation.numberOfGuests;
+    double packageTotal = packagePrice * numberOfGuests;
 
     // calculate total price for additional items
     double additionalItemsTotal = 0.0;
-    reservation.selectedAdditionalItems.forEach((key, value) {
+    additionalItems.forEach((key, value) {
       final price = value['price'] as double;
       final quantity = value['quantity'] as int;
       additionalItemsTotal += price * quantity;
@@ -36,11 +72,7 @@ class _PaymentPageState extends State<PaymentPage> {
     double totalPrice = packageTotal + additionalItemsTotal;
 
     // apply discount if code is valid
-    if (_isValidDiscountCode) {
-      finalPrice = totalPrice * 0.5;
-    } else {
-      finalPrice = totalPrice;
-    }
+    finalPrice = _isValidDiscountCode ? totalPrice * 0.5 : totalPrice;
 
     return Scaffold(
       appBar: AppBar(
@@ -122,11 +154,11 @@ class _PaymentPageState extends State<PaymentPage> {
             ),
             ListTile(
               title: Text(
-                '${reservation.selectedPackageName} (x${reservation.numberOfGuests})',
+                '$packageName (x$numberOfGuests)',
                 style: GoogleFonts.roboto(fontSize: 16),
               ),
               subtitle: Text(
-                'RM${reservation.selectedPackagePrice.toStringAsFixed(2)} per person',
+                'RM${packagePrice.toStringAsFixed(2)} per person',
                 style: GoogleFonts.roboto(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -150,7 +182,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 color: Colors.black,
               ),
             ),
-            if (reservation.selectedAdditionalItems.isEmpty)
+            if (additionalItems.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 8.0,
@@ -162,7 +194,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 ),
               )
             else
-              ...reservation.selectedAdditionalItems.entries.map((entry) {
+              ...additionalItems.entries.map((entry) {
                 final itemName = entry.key;
                 final quantity = entry.value['quantity'] as int;
                 final price = entry.value['price'] as double;
@@ -311,9 +343,9 @@ class _PaymentPageState extends State<PaymentPage> {
                                       MaterialPageRoute(
                                         builder:
                                             (context) => ReviewPage(
-                                              packageName:
-                                                  reservation
-                                                      .selectedPackageName,
+                                              packageName: packageName,
+                                              customerName: customerName,
+                                              sessionId: widget.sessionId,
                                             ),
                                       ),
                                     );

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:restaurant_booking_app/models/menu_package.dart';
 import 'package:restaurant_booking_app/services/database_helper.dart';
 import 'package:restaurant_booking_app/payment_page.dart';
+import 'dart:convert';
 
 class PackageDetailsPage extends StatefulWidget {
   final MenuPackage menuPackage;
@@ -295,7 +296,7 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
 
                   // convert detailedItems to a string
                   String additionalItemsJson =
-                      detailedItems.isNotEmpty ? detailedItems.toString() : '';
+                      detailedItems.isNotEmpty ? jsonEncode(detailedItems) : '';
 
                   // update to database
                   final update = await DatabaseHelper.instance
@@ -310,19 +311,13 @@ class _PackageDetailsPageState extends State<PackageDetailsPage> {
                     print('Package Updated!');
                   }
 
-                  // set selected package
-                  // reservation.setSelectedPackage(
-                  //   name: widget.menuPackage.name,
-                  //   price: widget.menuPackage.price,
-                  // );
-
-                  // // store additional items selection
-                  // reservation.updateSelectedItems(detailedItems);
-
                   // navigate to payment page
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => PaymentPage()),
+                    MaterialPageRoute(
+                      builder:
+                          (context) => PaymentPage(sessionId: widget.sessionId),
+                    ),
                   );
                 },
                 child: Text(

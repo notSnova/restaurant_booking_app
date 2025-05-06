@@ -19,11 +19,12 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createReservation);
+    return await openDatabase(path, version: 1, onCreate: _createTable);
   }
 
   // create table
-  Future _createReservation(Database db, int version) async {
+  Future _createTable(Database db, int version) async {
+    //reservation table
     await db.execute('''
     CREATE TABLE reservations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,9 +43,20 @@ class DatabaseHelper {
       selected_additional_items TEXT
     )
     ''');
+
+    // reviews table
+    await db.execute('''
+    CREATE TABLE reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_name TEXT,
+      package_name TEXT,
+      rating INTEGER,
+      review TEXT
+    )
+    ''');
   }
 
-  // show all data in database
+  // show all reservation data in database
   Future<List<Map<String, dynamic>>> getAllReservations() async {
     final db = await instance.database;
     return await db.query('reservations');
@@ -101,6 +113,23 @@ class DatabaseHelper {
       whereArgs: [sessionId],
     );
     return rowsAffected > 0;
+  }
+
+  // insert review data
+  Future<int> insertReview(Map<String, dynamic> reviewData) async {
+    final db = await instance.database;
+    return await db.insert('reviews', reviewData);
+  }
+
+  // fetch review data
+  Future<List<Map<String, dynamic>>> fetchReviews(String packageName) async {
+    final db = await instance.database;
+    return await db.query(
+      'reviews',
+      where: 'package_name = ?',
+      whereArgs: [packageName],
+      orderBy: 'id DESC',
+    );
   }
 
   // delete database

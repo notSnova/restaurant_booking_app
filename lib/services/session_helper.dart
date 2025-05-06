@@ -4,8 +4,8 @@ import 'package:uuid/uuid.dart';
 class SessionManager {
   static const String _sessionKey = 'session_id';
 
-  // generate a session if not exists and return it
-  static Future<String> getOrCreateSession() async {
+  // generate a session if not exists or reset
+  static Future<String> generateSession() async {
     final prefs = await SharedPreferences.getInstance();
     String? sessionId = prefs.getString(_sessionKey);
 
