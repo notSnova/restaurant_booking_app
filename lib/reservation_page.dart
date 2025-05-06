@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:restaurant_booking_app/reservation_details_page.dart';
-import 'models/reservation.dart';
+import 'package:restaurant_booking_app/services/database_helper.dart';
 
 class ReservationPage extends StatelessWidget {
-  const ReservationPage({super.key});
+  final String sessionId;
+
+  const ReservationPage({super.key, required this.sessionId});
 
   @override
   Widget build(BuildContext context) {
@@ -21,16 +22,17 @@ class ReservationPage extends StatelessWidget {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: const Padding(
+      body: Padding(
         padding: EdgeInsets.all(16.0),
-        child: ReservationForm(),
+        child: ReservationForm(sessionId: sessionId),
       ),
     );
   }
 }
 
 class ReservationForm extends StatefulWidget {
-  const ReservationForm({super.key});
+  final String sessionId;
+  const ReservationForm({super.key, required this.sessionId});
 
   @override
   State<ReservationForm> createState() => _ReservationFormState();
@@ -44,6 +46,9 @@ class _ReservationFormState extends State<ReservationForm> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _guestController = TextEditingController();
+  final TextEditingController _additionalRequestsController =
+      TextEditingController();
+
   DateTime? _reservationDate;
   TimeOfDay? _reservationTime;
   String? _dateError;
@@ -55,9 +60,6 @@ class _ReservationFormState extends State<ReservationForm> {
   }
 
   String _dineDuration = 'Select';
-
-  final List<String> _additionalRequests = [];
-  final List<String> _requestOptions = ['Birthday Celebration', 'Decoration'];
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -149,17 +151,21 @@ class _ReservationFormState extends State<ReservationForm> {
               isNumber: true,
             ),
             const SizedBox(height: 16),
+            const Divider(thickness: 1, color: Colors.black45),
+            const SizedBox(height: 16),
             _buildDatePicker(),
             const SizedBox(height: 8),
             _buildTimePicker(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _buildDineDurationDropdown(),
+            const SizedBox(height: 24),
+            const Divider(thickness: 1, color: Colors.black45),
             const SizedBox(height: 16),
             _buildAdditionalRequests(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 38),
             Center(
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() {
                     _dateError =
                         _reservationDate == null
@@ -174,25 +180,55 @@ class _ReservationFormState extends State<ReservationForm> {
                   if (_formKey.currentState!.validate() &&
                       _dateError == null &&
                       _timeError == null) {
-                    final reservation = Provider.of<Reservation>(
-                      context,
-                      listen: false,
+                    // collect data
+                    final reservationData = {
+                      'session_id': widget.sessionId,
+                      'name': _nameController.text,
+                      'address': _addressController.text,
+                      'phone': _phoneController.text,
+                      'email': _emailController.text,
+                      'guests': int.parse(_guestController.text),
+                      'reservation_date': DateFormat(
+                        'd MMMM yyyy',
+                      ).format(_reservationDate!),
+                      'reservation_time': _formatTime(_reservationTime!),
+                      'duration': _dineDuration,
+                      'additional_requests':
+                          _additionalRequestsController.text.trim().isEmpty
+                              ? 'None'
+                              : _additionalRequestsController.text.trim(),
+                    };
+
+                    // call db instance
+                    final dbHelper = DatabaseHelper.instance;
+
+                    // check if reservation details with this session exist
+                    final existedReservation = await dbHelper.fetchReservation(
+                      widget.sessionId,
                     );
-                    reservation.updateReservation(
-                      name: _nameController.text,
-                      address: _addressController.text,
-                      phone: _phoneController.text,
-                      email: _emailController.text,
-                      numberOfGuests: int.parse(_guestController.text),
-                      reservationDate: _reservationDate!,
-                      reservationTime: _reservationTime!,
-                      dineDuration: _dineDuration,
-                      additionalRequests: _additionalRequests,
-                    );
+
+                    if (existedReservation != null) {
+                      await dbHelper.updateReservation(
+                        widget.sessionId,
+                        reservationData,
+                      );
+                      print('Data updated!');
+                    } else {
+                      // insert into database
+                      await dbHelper.insertReservation(reservationData);
+                      print('Data inserted!');
+                    }
+
+                    // print to check
+                    print('Reservation Data: $reservationData');
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ReservationDetailsPage(),
+                        builder:
+                            (context) => ReservationDetailsPage(
+                              sessionId: widget.sessionId,
+                            ),
                       ),
                     );
                   }
@@ -222,6 +258,8 @@ class _ReservationFormState extends State<ReservationForm> {
     String label, {
     bool isNumber = false,
     bool isMultiline = false,
+    int? maxLines,
+    bool isOptional = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -233,26 +271,28 @@ class _ReservationFormState extends State<ReservationForm> {
                 : isMultiline
                 ? TextInputType.multiline
                 : TextInputType.text,
-        maxLines: isMultiline ? 3 : 1,
+        maxLines: maxLines ?? (isMultiline ? 3 : 1),
         cursorColor: Colors.black,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return '$label is required';
-          }
-          if (label == 'Email' && !RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
-            return 'Enter a valid email';
-          }
-          if (isNumber && int.tryParse(value) == null) {
-            return 'Enter a valid number';
-          }
-          if (label == 'Number of Guests') {
-            final guests = int.tryParse(value);
-            if (guests == null || guests <= 0) {
-              return 'Number of Guests must be greater than 0';
+          if (!isOptional) {
+            if (value == null || value.trim().isEmpty) {
+              return '$label is required';
+            }
+            if (label == 'Email' && !RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
+              return 'Enter a valid email';
+            }
+            if (isNumber && int.tryParse(value) == null) {
+              return 'Enter a valid number';
+            }
+            if (label == 'Number of Guests') {
+              final guests = int.tryParse(value);
+              if (guests == null || guests <= 0) {
+                return 'Number of Guests must be greater than 0';
+              }
             }
           }
           return null;
@@ -263,84 +303,91 @@ class _ReservationFormState extends State<ReservationForm> {
 
   // date picker
   Widget _buildDatePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Reservation Date',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(color: Colors.black),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: _dateError != null ? Colors.white : Colors.white,
-            ),
-            borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reservation Date',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.black),
           ),
-          child: TextButton(
-            onPressed: () => _selectDate(context),
-            child: Text(
-              _reservationDate == null
-                  ? 'Select Date'
-                  : DateFormat('d MMMM yyyy').format(_reservationDate!),
-              style: GoogleFonts.roboto(color: Colors.black, fontSize: 16),
+          const SizedBox(height: 8),
+          TextFormField(
+            readOnly: true,
+            onTap: () => _selectDate(context),
+            controller: TextEditingController(
+              text:
+                  _reservationDate == null
+                      ? ''
+                      : DateFormat('d MMMM yyyy').format(_reservationDate!),
             ),
-          ),
-        ),
-        if (_dateError != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 8, top: 0),
-            child: Text(
-              _dateError!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+            decoration: InputDecoration(
+              hintText: 'Select Date',
+              suffixIcon: const Icon(Icons.calendar_today, color: Colors.black),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              labelText: 'Select Date',
             ),
+            validator: (value) {
+              if (_reservationDate == null) {
+                return 'Please select a reservation date';
+              }
+              return null;
+            },
           ),
-      ],
+        ],
+      ),
     );
   }
 
   // time picker
   Widget _buildTimePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Reservation Time',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(color: Colors.black),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: _timeError != null ? Colors.white : Colors.white,
-            ),
-            borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reservation Time',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.black),
           ),
-          child: TextButton(
-            onPressed: () => _selectTime(context),
-            child: Text(
-              _reservationTime == null
-                  ? 'Select Time'
-                  : _formatTime(_reservationTime!),
-              style: GoogleFonts.roboto(color: Colors.black, fontSize: 16),
+          const SizedBox(height: 8),
+          TextFormField(
+            readOnly: true,
+            onTap: () => _selectTime(context),
+            controller: TextEditingController(
+              text:
+                  _reservationTime == null
+                      ? ''
+                      : _formatTime(_reservationTime!),
             ),
-          ),
-        ),
-        if (_timeError != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 8, top: 0),
-            child: Text(
-              _timeError!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+            decoration: InputDecoration(
+              hintText: 'Select Time',
+              suffixIcon: const Icon(Icons.access_time, color: Colors.black),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              labelText: 'Select Time',
             ),
+            validator: (value) {
+              if (_reservationTime == null) {
+                return 'Please select a reservation time';
+              }
+              return null;
+            },
           ),
-      ],
+        ],
+      ),
     );
   }
 
+  // dine duration dropdown
   Widget _buildDineDurationDropdown() {
     return DropdownButtonFormField<String>(
       value: _dineDuration,
@@ -376,31 +423,23 @@ class _ReservationFormState extends State<ReservationForm> {
     );
   }
 
+  // additional request section
   Widget _buildAdditionalRequests() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Additional Requests',
+          'Additional Requests (Optional)',
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        ..._requestOptions.map((request) {
-          return CheckboxListTile(
-            title: Text(request),
-            value: _additionalRequests.contains(request),
-            onChanged: (bool? selected) {
-              setState(() {
-                if (selected == true) {
-                  _additionalRequests.add(request);
-                } else {
-                  _additionalRequests.remove(request);
-                }
-              });
-            },
-            activeColor: Colors.black,
-            checkColor: Colors.white,
-          );
-        }),
+        const SizedBox(height: 8),
+        _buildTextField(
+          _additionalRequestsController,
+          'Specify Your Request',
+          isMultiline: true,
+          maxLines: 2,
+          isOptional: true,
+        ),
       ],
     );
   }

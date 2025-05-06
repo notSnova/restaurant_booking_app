@@ -1,32 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:restaurant_booking_app/menu_page.dart';
-import 'models/reservation.dart';
+import 'package:restaurant_booking_app/services/database_helper.dart';
 
-class ReservationDetailsPage extends StatelessWidget {
-  const ReservationDetailsPage({super.key});
+class ReservationDetailsPage extends StatefulWidget {
+  final String sessionId;
 
-  String formatDate(DateTime? date) {
-    if (date == null) return 'Not selected';
-    return DateFormat('d MMMM yyyy').format(date);
+  const ReservationDetailsPage({super.key, required this.sessionId});
+
+  @override
+  ReservationDetailsPageState createState() => ReservationDetailsPageState();
+}
+
+class ReservationDetailsPageState extends State<ReservationDetailsPage> {
+  Map<String, dynamic>? reservationData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReservationData();
   }
 
-  String formatTime(TimeOfDay? time) {
-    if (time == null) return 'Not selected';
-    final now = DateTime(0, 0, 0, time.hour, time.minute);
-    return DateFormat.jm().format(now);
+  // fetch data from database
+  Future<void> _loadReservationData() async {
+    final data = await DatabaseHelper.instance.fetchReservation(
+      widget.sessionId,
+    );
+    setState(() {
+      reservationData = data;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final reservation = Provider.of<Reservation>(context);
+    if (reservationData == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final reservation = reservationData!;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Reservation Details',
+          'Reservation Confirm',
           style: GoogleFonts.roboto(color: Colors.white),
         ),
         backgroundColor: Colors.black,
@@ -39,59 +55,84 @@ class ReservationDetailsPage extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
             Center(child: Image.asset('assets/logo.png', height: 100)),
-            const SizedBox(height: 32),
-            Text(
-              'Confirm Your Details',
-              style: GoogleFonts.roboto(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 35),
             Expanded(
               child: ListView(
                 children: [
-                  _buildInfoCard(
-                    context,
-                    title: 'Customer Info',
-                    children: [
-                      _buildSummaryRow('Name', reservation.name),
-                      _buildSummaryRow('Address', reservation.address),
-                      _buildSummaryRow('Phone', reservation.phone),
-                      _buildSummaryRow('Email', reservation.email),
-                      _buildSummaryRow(
-                        'Guests',
-                        reservation.numberOfGuests.toString(),
+                  Card(
+                    elevation: 8,
+                    color: Colors.white,
+                    shadowColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade400, width: 1),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10),
+                          Center(
+                            child: Text(
+                              'Customer Details',
+                              style: GoogleFonts.roboto(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                          const Divider(thickness: 1, color: Colors.black45),
+                          const SizedBox(height: 12),
+                          _buildSummaryRow('Name', reservation['name']),
+                          _buildSummaryRow('Address', reservation['address']),
+                          _buildSummaryRow('Phone', reservation['phone']),
+                          _buildSummaryRow('Email', reservation['email']),
+                          _buildSummaryRow(
+                            'Guests',
+                            '${reservation['guests'].toString()} people(s)',
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          Center(
+                            child: Text(
+                              'Reservation Details',
+                              style: GoogleFonts.roboto(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          const Divider(thickness: 1, color: Colors.black45),
+                          const SizedBox(height: 12),
+                          _buildSummaryRow(
+                            'Date',
+                            reservation['reservation_date'],
+                          ),
+                          _buildSummaryRow(
+                            'Time',
+                            _formatTimeRange(
+                              reservation['reservation_time'],
+                              reservation['duration'],
+                            ),
+                          ),
+                          _buildSummaryRow('Duration', reservation['duration']),
+                          _buildSummaryRow(
+                            'Additional Requests',
+                            reservation['additional_requests'] ?? 'None',
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildInfoCard(
-                    context,
-                    title: 'Reservation Info',
-                    children: [
-                      _buildSummaryRow(
-                        'Date',
-                        formatDate(reservation.reservationDate),
-                      ),
-                      _buildSummaryRow(
-                        'Time',
-                        formatTime(reservation.reservationTime),
-                      ),
-                      _buildSummaryRow('Duration', reservation.dineDuration),
-                      _buildSummaryRow(
-                        'Additional Requests',
-                        reservation.additionalRequests.isNotEmpty
-                            ? reservation.additionalRequests.join(', ')
-                            : 'None',
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -151,64 +192,26 @@ class ReservationDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(
-    BuildContext context, {
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Card(
-      elevation: 8,
-      color: Colors.white,
-      shadowColor: Colors.black,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade400, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.roboto(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ..._addDividersBetween(children),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _addDividersBetween(List<Widget> widgets) {
-    return List.generate(widgets.length * 2 - 1, (index) {
-      if (index.isOdd) {
-        return const Divider(thickness: 1, color: Colors.black45);
-      } else {
-        return widgets[index ~/ 2];
-      }
-    });
-  }
-
   Widget _buildSummaryRow(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            '$title: ',
-            style: GoogleFonts.roboto(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: Colors.black,
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$title:',
+              textAlign: TextAlign.right,
+              style: GoogleFonts.roboto(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Colors.black,
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               value,
@@ -218,5 +221,52 @@ class ReservationDetailsPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // format time + duration
+  String _formatTimeRange(String startTime, String durationText) {
+    try {
+      // clean and parse start time
+      final cleanedTime = startTime.trim().toUpperCase().replaceAll('.', ':');
+      final timeParts = cleanedTime.split(RegExp(r'[:\s]+'));
+      int hour = int.parse(timeParts[0]);
+      int minute = int.parse(timeParts[1]);
+      String meridiem = timeParts[2];
+
+      if (meridiem == 'PM' && hour != 12) {
+        hour += 12;
+      } else if (meridiem == 'AM' && hour == 12) {
+        hour = 0;
+      }
+
+      final now = DateTime.now();
+      final startDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
+
+      // parse duration in hours
+      final durationHours =
+          int.tryParse(durationText.replaceAll(RegExp(r'\D'), '')) ?? 0;
+      final endDateTime = startDateTime.add(Duration(hours: durationHours));
+
+      final formattedStart = _formatTo12Hour(startDateTime);
+      final formattedEnd = _formatTo12Hour(endDateTime);
+
+      return '$formattedStart - $formattedEnd';
+    } catch (e) {
+      // if parsing fails, show fallback
+      return '$startTime ($durationText)';
+    }
+  }
+
+  String _formatTo12Hour(DateTime dt) {
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final suffix = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour.$minute $suffix';
   }
 }

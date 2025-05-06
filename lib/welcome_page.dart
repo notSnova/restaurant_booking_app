@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'reservation_page.dart';
 
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key});
+  final String sessionId;
+
+  const WelcomePage({super.key, required this.sessionId});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,7 @@ class WelcomePage extends StatelessWidget {
                       transitionDuration: const Duration(milliseconds: 500),
                       pageBuilder:
                           (context, animation, secondaryAnimation) =>
-                              const ReservationPage(),
+                              ReservationPage(sessionId: sessionId),
                       transitionsBuilder: (
                         context,
                         animation,
